@@ -1,6 +1,0 @@
-{
-  "/api/auth/route": "app/api/auth/route.js",
-  "/api/bookings/route": "app/api/bookings/route.js",
-  "/api/members/route": "app/api/members/route.js",
-  "/api/slots/route": "app/api/slots/route.js"
-}
