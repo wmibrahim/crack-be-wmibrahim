@@ -2,3 +2,5 @@ node_modules
 .next/
 崩溃/
 *.sst
+.env
+.env.local
