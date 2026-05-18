@@ -1,11 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { corsHeaders } from '../cors'
 
-// GET /api/slots — ambil semua slot (+ jumlah booking per tanggal)
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders() })
+}
+
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
-  const date = searchParams.get('date') // format: YYYY-MM-DD
+  const date = searchParams.get('date')
 
   const { data: slots, error } = await supabase
     .from('slots')
@@ -13,10 +17,9 @@ export async function GET(request: NextRequest) {
     .order('start_time')
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() })
   }
 
-  // Kalau ada date, hitung jumlah booking aktif per slot
   if (date) {
     const { data: bookings } = await supabase
       .from('bookings')
@@ -35,20 +38,18 @@ export async function GET(request: NextRequest) {
       available: slot.quota - (bookedCount[slot.id] || 0)
     }))
 
-    return NextResponse.json({ slots: slotsWithAvailability })
+    return NextResponse.json({ slots: slotsWithAvailability }, { headers: corsHeaders() })
   }
 
-  return NextResponse.json({ slots })
+  return NextResponse.json({ slots }, { headers: corsHeaders() })
 }
 
-// PATCH /api/slots — update kuota (admin only)
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient()
 
-  // Cek apakah admin
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401 })
+    return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401, headers: corsHeaders() })
   }
 
   const { data: profile } = await supabase
@@ -58,14 +59,14 @@ export async function PATCH(request: NextRequest) {
     .single()
 
   if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403, headers: corsHeaders() })
   }
 
   const body = await request.json()
   const { id, quota } = body
 
   if (!id || quota === undefined || quota < 1) {
-    return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })
+    return NextResponse.json({ error: 'Data tidak valid' }, { status: 400, headers: corsHeaders() })
   }
 
   const { data, error } = await supabase
@@ -76,8 +77,8 @@ export async function PATCH(request: NextRequest) {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() })
   }
 
-  return NextResponse.json({ message: 'Kuota berhasil diupdate', slot: data })
+  return NextResponse.json({ message: 'Kuota berhasil diupdate', slot: data }, { headers: corsHeaders() })
 }
