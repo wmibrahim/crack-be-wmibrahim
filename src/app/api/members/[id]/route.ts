@@ -1,7 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { corsHeaders } from '../../cors'
 
-// PATCH /api/members/[id] — update data member (admin only)
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders() })
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -11,7 +15,7 @@ export async function PATCH(
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401 })
+    return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401, headers: corsHeaders() })
   }
 
   const { data: profile } = await supabase
@@ -21,7 +25,7 @@ export async function PATCH(
     .single()
 
   if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403, headers: corsHeaders() })
   }
 
   const body = await request.json()
@@ -35,13 +39,12 @@ export async function PATCH(
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() })
   }
 
-  return NextResponse.json({ message: 'Member berhasil diupdate', member: updated })
+  return NextResponse.json({ message: 'Member berhasil diupdate', member: updated }, { headers: corsHeaders() })
 }
 
-// DELETE /api/members/[id] — hapus member (admin only)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -51,7 +54,7 @@ export async function DELETE(
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401 })
+    return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401, headers: corsHeaders() })
   }
 
   const { data: profile } = await supabase
@@ -61,7 +64,7 @@ export async function DELETE(
     .single()
 
   if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403, headers: corsHeaders() })
   }
 
   const { error } = await supabase
@@ -70,8 +73,8 @@ export async function DELETE(
     .eq('id', id)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500, headers: corsHeaders() })
   }
 
-  return NextResponse.json({ message: 'Member berhasil dihapus' })
+  return NextResponse.json({ message: 'Member berhasil dihapus' }, { headers: corsHeaders() })
 }
