@@ -16,14 +16,14 @@ export async function GET(request: NextRequest) {
     // 1. Ambil token JWT dari Header Authorization
     const authHeader = request.headers.get('Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401, headers: corsHeaders() })
+      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401, headers: corsHeaders() })
     }
     const token = authHeader.split(' ')[1]
 
     // 2. Cari tahu identitas User ID lewat token tersebut
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) {
-      return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401, headers: corsHeaders() })
+      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401, headers: corsHeaders() })
     }
 
     // 3. Tarik role user dari tabel profiles
@@ -72,13 +72,13 @@ export async function POST(request: NextRequest) {
     // 1. Validasi token JWT dari Frontend
     const authHeader = request.headers.get('Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401, headers: corsHeaders() })
+      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401, headers: corsHeaders() })
     }
     const token = authHeader.split(' ')[1]
 
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) {
-      return NextResponse.json({ error: 'Tidak terautentikasi' }, { status: 401, headers: corsHeaders() })
+      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401, headers: corsHeaders() })
     }
 
     // 2. Cek hak akses role profile user
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (profile?.role !== 'member') {
-      return NextResponse.json({ error: 'Hanya member yang bisa booking' }, { status: 403, headers: corsHeaders() })
+      return NextResponse.json({ error: 'Only members can book sessions' }, { status: 403, headers: corsHeaders() })
     }
 
     // 3. Periksa kelengkapan data payload input body
@@ -97,13 +97,13 @@ export async function POST(request: NextRequest) {
     const { slot_id, date } = body
 
     if (!slot_id || !date) {
-      return NextResponse.json({ error: 'slot_id dan date wajib diisi' }, { status: 400, headers: corsHeaders() })
+      return NextResponse.json({ error: 'slot_id and date are required' }, { status: 400, headers: corsHeaders() })
     }
 
     // 4. Validasi tanggal agar tidak melompat ke masa lalu
     const today = new Date().toISOString().split('T')[0]
     if (date < today) {
-      return NextResponse.json({ error: 'Tidak bisa booking di tanggal yang sudah lewat' }, { status: 400, headers: corsHeaders() })
+      return NextResponse.json({ error: 'Cannot book a past date' }, { status: 400, headers: corsHeaders() })
     }
 
     // 5. Cek duplikasi: pastikan tidak ada booking aktif di slot & tanggal yang sama untuk user ini
@@ -114,10 +114,10 @@ export async function POST(request: NextRequest) {
       .eq('slot_id', slot_id)
       .eq('date', date)
       .eq('status', 'active')
-      .maybeSingle() // Menggunakan maybeSingle agar tidak memicu error crash jika data kosong
+      .maybeSingle() 
 
     if (existingBooking) {
-      return NextResponse.json({ error: 'Kamu sudah punya booking aktif di slot ini' }, { status: 409, headers: corsHeaders() })
+      return NextResponse.json({ error: 'You already have an active booking for this slot' }, { status: 409, headers: corsHeaders() })
     }
 
     // 6. Jalankan fungsi database RPC Supabase untuk mengunci validasi sisa kuota slot gym
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isAvailable) {
-      return NextResponse.json({ error: 'Slot sudah penuh' }, { status: 409, headers: corsHeaders() })
+      return NextResponse.json({ error: 'Slot is fully booked' }, { status: 409, headers: corsHeaders() })
     }
 
     // 7. Jika seluruh pengecekan lolos, rekam data booking baru ke Supabase
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500, headers: corsHeaders() })
     }
 
-    return NextResponse.json({ message: 'Booking berhasil', booking }, { status: 201, headers: corsHeaders() })
+    return NextResponse.json({ message: 'Booking successful', booking }, { status: 201, headers: corsHeaders() })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() })
   }
